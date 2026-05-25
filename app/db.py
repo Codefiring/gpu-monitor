@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from app.timezone import now_cst, parse_iso_to_cst
+from app.timezone import now_utc, parse_iso_to_utc
 
 
 METRIC_COLUMNS = (
@@ -59,22 +59,21 @@ class MetricsStore:
                     ON metrics(gpu_index, timestamp);
                 """
             )
-            self._migrate_timestamps_to_cst_locked()
+            self._migrate_timestamps_to_utc_locked()
             self._conn.commit()
 
-    def _migrate_timestamps_to_cst_locked(self) -> None:
+    def _migrate_timestamps_to_utc_locked(self) -> None:
         rows = self._conn.execute(
             """
             SELECT id, timestamp
             FROM metrics
-            WHERE timestamp LIKE '%+00:00'
-               OR timestamp LIKE '%Z'
+            WHERE timestamp NOT LIKE '%+00:00'
             """
         ).fetchall()
         updates = []
         for row in rows:
             try:
-                updates.append((parse_iso_to_cst(row["timestamp"]).isoformat(), row["id"]))
+                updates.append((parse_iso_to_utc(row["timestamp"]).isoformat(), row["id"]))
             except ValueError:
                 continue
         if updates:
@@ -98,7 +97,7 @@ class MetricsStore:
             self._conn.commit()
 
     def prune_older_than(self, days: int) -> int:
-        cutoff = now_cst() - timedelta(days=days)
+        cutoff = now_utc() - timedelta(days=days)
         with self._lock:
             cursor = self._conn.execute(
                 "DELETE FROM metrics WHERE timestamp < ?",

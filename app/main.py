@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.db import MetricsStore
 from app.gpu import GpuCollector
-from app.timezone import normalize_to_cst, now_cst
+from app.timezone import normalize_to_utc, now_utc
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,7 +80,7 @@ def history(
     end: Annotated[datetime | None, Query(alias="to")] = None,
     limit: Annotated[int, Query(ge=1, le=10000)] = 2000,
 ) -> dict:
-    end = _normalize_datetime(end) if end else now_cst()
+    end = _normalize_datetime(end) if end else now_utc()
     start = _normalize_datetime(start) if start else end - timedelta(minutes=DEFAULT_HISTORY_MINUTES)
     metrics = store.history(gpu, start, end, limit)
     collector_error = collector.last_error
@@ -88,9 +88,9 @@ def history(
     # The browser asks for history up to its current time. On a cold start, the
     # first on-demand sample can land milliseconds after that upper bound. Widen
     # the bound only for near-real-time empty windows so the first sample appears.
-    if not metrics and abs((now_cst() - end).total_seconds()) <= SAMPLE_INTERVAL_SECONDS * 2:
+    if not metrics and abs((now_utc() - end).total_seconds()) <= SAMPLE_INTERVAL_SECONDS * 2:
         collector_error = _collect_once()
-        end = now_cst()
+        end = now_utc()
         metrics = store.history(gpu, start, end, limit)
 
     return {
@@ -108,14 +108,14 @@ def metrics_window(
     minutes: Annotated[int, Query(ge=1, le=43200)] = DEFAULT_HISTORY_MINUTES,
     limit: Annotated[int, Query(ge=1, le=10000)] = 2000,
 ) -> dict:
-    end = now_cst()
+    end = now_utc()
     start = end - timedelta(minutes=minutes)
     metrics = store.history(gpu, start, end, limit)
     collector_error = collector.last_error
 
     if not metrics:
         collector_error = _collect_once()
-        end = now_cst()
+        end = now_utc()
         start = end - timedelta(minutes=minutes)
         metrics = store.history(gpu, start, end, limit)
 
@@ -152,7 +152,7 @@ def stats(
     start: Annotated[datetime | None, Query(alias="from")] = None,
     end: Annotated[datetime | None, Query(alias="to")] = None,
 ) -> dict:
-    end = _normalize_datetime(end) if end else now_cst()
+    end = _normalize_datetime(end) if end else now_utc()
     start = _normalize_datetime(start) if start else end - timedelta(hours=1)
     return {
         "gpu": gpu,
@@ -189,4 +189,4 @@ def _collect_once() -> str | None:
 
 
 def _normalize_datetime(value: datetime) -> datetime:
-    return normalize_to_cst(value)
+    return normalize_to_utc(value)

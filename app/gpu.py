@@ -4,7 +4,7 @@ from typing import Any
 
 import pynvml
 
-from app.timezone import now_cst
+from app.timezone import now_utc
 
 
 class GpuCollector:
@@ -58,7 +58,7 @@ class GpuCollector:
     def sample(self) -> list[dict[str, Any]]:
         try:
             self.init()
-            timestamp = now_cst().isoformat()
+            timestamp = now_utc().isoformat()
             metrics = []
             for index in range(self.gpu_count()):
                 metrics.append(_sample_gpu(index, timestamp))

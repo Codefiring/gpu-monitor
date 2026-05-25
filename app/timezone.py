@@ -1,23 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import UTC, datetime
 
 
-CST = ZoneInfo("Asia/Shanghai")
+def now_utc() -> datetime:
+    return datetime.now(UTC)
 
 
-def now_cst() -> datetime:
-    return datetime.now(CST)
-
-
-def normalize_to_cst(value: datetime) -> datetime:
+def normalize_to_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
-        return value.replace(tzinfo=CST)
-    return value.astimezone(CST)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
-def parse_iso_to_cst(value: str) -> datetime:
+def parse_iso_to_utc(value: str) -> datetime:
     normalized = value.replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
-    return normalize_to_cst(parsed)
+    return normalize_to_utc(parsed)

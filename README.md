@@ -39,4 +39,4 @@ GPU_MONITOR_DEFAULT_HISTORY_MINUTES=10
 
 默认数据库路径是 `data/gpu_metrics.sqlite3`。
 
-所有采样时间统一使用 CST，也就是 `Asia/Shanghai` / `+08:00`。应用启动时会把旧的 `+00:00` 历史时间戳转换为对应的 CST 时间戳。
+所有采样时间统一使用 UTC，也就是 `+00:00`。应用启动时会把旧的非 UTC 历史时间戳转换为对应的 UTC 时间戳。

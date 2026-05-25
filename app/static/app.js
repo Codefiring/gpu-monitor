@@ -375,8 +375,8 @@ async function loadStats() {
 
   const startValue = els.statsFrom.value;
   const endValue = els.statsTo.value;
-  const start = parseDatetimeLocalAsCst(startValue);
-  const end = parseDatetimeLocalAsCst(endValue);
+  const start = parseDatetimeLocalAsUtc(startValue);
+  const end = parseDatetimeLocalAsUtc(endValue);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
     renderStatsMessage("请选择有效的开始和结束时间");
     drawChart(els.statsChart, []);
@@ -388,13 +388,13 @@ async function loadStats() {
 
   const params = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: toCstOffsetIso(startValue),
-    to: toCstOffsetIso(endValue),
+    from: toUtcOffsetIso(startValue),
+    to: toUtcOffsetIso(endValue),
   });
   const historyParams = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: toCstOffsetIso(startValue),
-    to: toCstOffsetIso(endValue),
+    from: toUtcOffsetIso(startValue),
+    to: toUtcOffsetIso(endValue),
     limit: "10000",
   });
 
@@ -407,8 +407,8 @@ async function loadStats() {
     const metrics = historyData.metrics || [];
     const selectedGpu = state.gpus.find((gpu) => String(gpu.index) === els.statsGpu.value);
     els.statsChartTitle.textContent = selectedGpu
-      ? `GPU ${selectedGpu.index} 时间段曲线 (${formatCstRange(startValue, endValue)})`
-      : `时间段曲线 (${formatCstRange(startValue, endValue)})`;
+      ? `GPU ${selectedGpu.index} 时间段曲线 (${formatUtcRange(startValue, endValue)})`
+      : `时间段曲线 (${formatUtcRange(startValue, endValue)})`;
     drawChart(els.statsChart, metrics);
     renderAverageStats(stats);
     els.status.textContent = `统计完成，样本数 ${number(stats.samples, 0)}`;
@@ -447,24 +447,24 @@ function stat(label, value) {
 function setDefaultStatsRange() {
   const end = new Date();
   const start = new Date(end.getTime() - 60 * 60 * 1000);
-  els.statsFrom.value = toDatetimeCst(end.getTime() - 60 * 60 * 1000);
-  els.statsTo.value = toDatetimeCst(end.getTime());
+  els.statsFrom.value = toDatetimeUtc(end.getTime() - 60 * 60 * 1000);
+  els.statsTo.value = toDatetimeUtc(end.getTime());
 }
 
-function toDatetimeCst(time) {
-  return new Date(time + 8 * 60 * 60 * 1000).toISOString().slice(0, 16);
+function toDatetimeUtc(time) {
+  return new Date(time).toISOString().slice(0, 16);
 }
 
-function parseDatetimeLocalAsCst(value) {
-  return new Date(toCstOffsetIso(value));
+function parseDatetimeLocalAsUtc(value) {
+  return new Date(toUtcOffsetIso(value));
 }
 
-function toCstOffsetIso(value) {
-  return `${value}:00+08:00`;
+function toUtcOffsetIso(value) {
+  return `${value}:00+00:00`;
 }
 
-function formatCstRange(startValue, endValue) {
-  return `${startValue.replace("T", " ")} - ${endValue.replace("T", " ")} CST`;
+function formatUtcRange(startValue, endValue) {
+  return `${startValue.replace("T", " ")} - ${endValue.replace("T", " ")} UTC`;
 }
 
 function timestampClock(value) {
