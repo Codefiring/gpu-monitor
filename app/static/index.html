@@ -8,9 +8,12 @@
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <h1>GPU Monitor</h1>
-        <p id="statusText">正在连接服务器...</p>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">GM</div>
+        <div>
+          <h1>GPU Monitor</h1>
+          <p id="statusText">正在连接服务器...</p>
+        </div>
       </div>
       <div class="toolbar">
         <label>
@@ -31,7 +34,10 @@
 
       <section class="stats-panel">
         <div class="stats-header">
-          <h2>时间段统计</h2>
+          <div>
+            <h2>时间段统计</h2>
+            <p class="section-note">平均值和峰值按所选时间范围计算</p>
+          </div>
           <div class="stats-controls">
             <label>
               GPU
