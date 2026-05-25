@@ -48,7 +48,9 @@ els.refreshButton.addEventListener("click", async () => {
   }
 });
 els.historyWindow.addEventListener("change", refreshAll);
-els.statsButton.addEventListener("click", loadStats);
+els.statsButton.addEventListener("click", async () => {
+  await loadStats();
+});
 
 function bindViewSwitching() {
   els.viewCards.forEach((card) => {
@@ -376,7 +378,7 @@ function renderStatsGpuOptions() {
 
 async function loadStats() {
   if (!els.statsGpu.value) {
-    els.statsResult.innerHTML = `<div class="empty">没有可统计的 GPU</div>`;
+    renderStatsMessage("没有可统计的 GPU");
     drawChart(els.statsChart, []);
     return;
   }
@@ -384,10 +386,13 @@ async function loadStats() {
   const start = new Date(els.statsFrom.value);
   const end = new Date(els.statsTo.value);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
-    els.statsResult.innerHTML = `<div class="empty">请选择有效的开始和结束时间</div>`;
+    renderStatsMessage("请选择有效的开始和结束时间");
     drawChart(els.statsChart, []);
     return;
   }
+
+  setStatsLoading(true);
+  renderStatsMessage("统计中...");
 
   const params = new URLSearchParams({
     gpu: els.statsGpu.value,
@@ -414,10 +419,22 @@ async function loadStats() {
       : "时间段曲线";
     drawChart(els.statsChart, metrics);
     renderAverageStats(stats);
+    els.status.textContent = `统计完成，样本数 ${number(stats.samples, 0)}`;
   } catch (error) {
-    els.statsResult.innerHTML = `<div class="empty">统计失败：${escapeHtml(error.message)}</div>`;
+    renderStatsMessage(`统计失败：${escapeHtml(error.message)}`);
     drawChart(els.statsChart, []);
+  } finally {
+    setStatsLoading(false);
   }
+}
+
+function renderStatsMessage(message) {
+  els.statsResult.innerHTML = `<div class="empty stats-message">${message}</div>`;
+}
+
+function setStatsLoading(isLoading) {
+  els.statsButton.disabled = isLoading;
+  els.statsButton.textContent = isLoading ? "统计中" : "统计";
 }
 
 function renderAverageStats(stats) {

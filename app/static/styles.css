@@ -231,6 +231,13 @@ button:active {
   background: #0a5a54;
 }
 
+button:disabled {
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
+  color: var(--muted);
+  cursor: wait;
+}
+
 .gpu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -343,6 +350,11 @@ canvas {
   background: var(--surface);
   color: var(--muted);
   text-align: center;
+}
+
+.stats-message {
+  min-height: 92px;
+  grid-column: 1 / -1;
 }
 
 .stats-panel {
