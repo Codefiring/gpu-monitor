@@ -83,7 +83,7 @@ h1 {
 }
 
 h2 {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 720;
   line-height: 1.2;
 }
@@ -108,9 +108,9 @@ h2 {
 }
 
 main {
-  width: min(1480px, 100%);
+  width: min(1760px, 100%);
   margin: 0 auto;
-  padding: 24px 28px 40px;
+  padding: 20px 24px 36px;
 }
 
 [hidden] {
@@ -127,10 +127,10 @@ main {
 .view-card {
   display: grid;
   height: auto;
-  min-height: 78px;
+  min-height: 66px;
   justify-items: start;
-  gap: 7px;
-  padding: 14px 16px;
+  gap: 5px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-left: 3px solid transparent;
   border-radius: var(--radius);
@@ -233,8 +233,8 @@ button:active {
 
 .gpu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
 }
 
 .gpu-card,
@@ -245,7 +245,7 @@ button:active {
 }
 
 .gpu-card {
-  min-height: 426px;
+  min-height: 0;
   overflow: hidden;
   padding: 0;
 }
@@ -255,7 +255,7 @@ button:active {
   align-items: start;
   justify-content: space-between;
   gap: 12px;
-  padding: 15px 16px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-soft);
 }
@@ -266,8 +266,8 @@ button:active {
 }
 
 .gpu-index {
-  min-width: 58px;
-  padding: 5px 8px;
+  min-width: 54px;
+  padding: 4px 7px;
   border: 1px solid #bfe4de;
   border-radius: 999px;
   background: var(--accent-soft);
@@ -285,8 +285,8 @@ button:active {
 }
 
 .metric {
-  min-height: 76px;
-  padding: 12px 14px;
+  min-height: 58px;
+  padding: 9px 10px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -303,7 +303,7 @@ button:active {
 .metric span {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -311,10 +311,10 @@ button:active {
 
 .metric strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
   overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 760;
   line-height: 1.15;
 }
@@ -322,8 +322,8 @@ button:active {
 .chart-wrap {
   position: relative;
   width: 100%;
-  height: 238px;
-  padding: 14px 16px 16px;
+  height: 178px;
+  padding: 10px 12px 12px;
 }
 
 canvas {
@@ -357,8 +357,8 @@ canvas {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 18px;
-  padding: 16px;
+  gap: 14px;
+  padding: 14px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-soft);
 }
@@ -376,8 +376,8 @@ canvas {
 }
 
 .stats-chart-wrap {
-  height: 360px;
-  padding: 16px;
+  height: 380px;
+  padding: 14px;
 }
 
 .stats-chart-wrap canvas {
@@ -395,7 +395,7 @@ canvas {
 
 .stat-cell span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -415,6 +415,19 @@ canvas {
 
 #statusText:has(.error)::before {
   background: var(--danger);
+}
+
+
+@media (min-width: 1320px) {
+  .gpu-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 860px) and (max-width: 1319px) {
+  .gpu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 860px) {
