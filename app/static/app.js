@@ -3,6 +3,7 @@ const state = {
   latestByGpu: new Map(),
   charts: new Map(),
   timer: null,
+  activeView: "monitor",
 };
 
 const colors = {
@@ -17,7 +18,11 @@ const colors = {
 
 const els = {
   status: document.getElementById("statusText"),
+  viewCards: Array.from(document.querySelectorAll(".view-card")),
+  monitorView: document.getElementById("monitorView"),
+  statsView: document.getElementById("statsView"),
   gpuGrid: document.getElementById("gpuGrid"),
+  historyControl: document.getElementById("historyControl"),
   historyWindow: document.getElementById("historyWindow"),
   refreshButton: document.getElementById("refreshButton"),
   statsGpu: document.getElementById("statsGpu"),
@@ -25,17 +30,52 @@ const els = {
   statsTo: document.getElementById("statsTo"),
   statsButton: document.getElementById("statsButton"),
   statsResult: document.getElementById("statsResult"),
+  statsChart: document.getElementById("statsChart"),
+  statsChartTitle: document.getElementById("statsChartTitle"),
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   setDefaultStatsRange();
+  bindViewSwitching();
   await refreshAll();
   state.timer = window.setInterval(refreshAll, 5000);
 });
 
-els.refreshButton.addEventListener("click", refreshAll);
+els.refreshButton.addEventListener("click", async () => {
+  await refreshAll();
+  if (state.activeView === "stats") {
+    await loadStats();
+  }
+});
 els.historyWindow.addEventListener("change", refreshAll);
 els.statsButton.addEventListener("click", loadStats);
+
+function bindViewSwitching() {
+  els.viewCards.forEach((card) => {
+    card.addEventListener("click", async () => {
+      await switchView(card.dataset.view);
+    });
+  });
+}
+
+async function switchView(view) {
+  state.activeView = view;
+  els.monitorView.hidden = view !== "monitor";
+  els.statsView.hidden = view !== "stats";
+  els.historyControl.hidden = view !== "monitor";
+
+  els.viewCards.forEach((card) => {
+    const isActive = card.dataset.view === view;
+    card.classList.toggle("is-active", isActive);
+    card.setAttribute("aria-pressed", String(isActive));
+  });
+
+  if (view === "monitor") {
+    await refreshCharts();
+  } else {
+    await loadStats();
+  }
+}
 
 async function refreshAll() {
   try {
@@ -59,7 +99,9 @@ async function refreshAll() {
 
     renderGpuCards();
     renderStatsGpuOptions();
-    await refreshCharts();
+    if (state.activeView === "monitor") {
+      await refreshCharts();
+    }
   } catch (error) {
     els.status.innerHTML = `<span class="error">连接失败：${escapeHtml(error.message)}</span>`;
   }
@@ -113,6 +155,8 @@ function metric(label, value) {
 }
 
 async function refreshCharts() {
+  if (state.activeView !== "monitor") return;
+
   await Promise.all(
     state.gpus.map(async (gpu) => {
       const minutes = Number(els.historyWindow.value);
@@ -160,7 +204,7 @@ function drawChart(canvas, metrics) {
     ctx.fillStyle = colors.muted;
     ctx.font = "14px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText("等待采样数据", width / 2, height / 2);
+    ctx.fillText("该时间段暂无采样数据", width / 2, height / 2);
     return;
   }
 
@@ -255,28 +299,57 @@ function renderStatsGpuOptions() {
 async function loadStats() {
   if (!els.statsGpu.value) {
     els.statsResult.innerHTML = `<div class="empty">没有可统计的 GPU</div>`;
+    drawChart(els.statsChart, []);
+    return;
+  }
+
+  const start = new Date(els.statsFrom.value);
+  const end = new Date(els.statsTo.value);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+    els.statsResult.innerHTML = `<div class="empty">请选择有效的开始和结束时间</div>`;
+    drawChart(els.statsChart, []);
     return;
   }
 
   const params = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: new Date(els.statsFrom.value).toISOString(),
-    to: new Date(els.statsTo.value).toISOString(),
+    from: start.toISOString(),
+    to: end.toISOString(),
   });
-  const data = await fetchJson(`/api/stats?${params}`);
-  const stats = data.stats || {};
+  const historyParams = new URLSearchParams({
+    gpu: els.statsGpu.value,
+    from: start.toISOString(),
+    to: end.toISOString(),
+    limit: "10000",
+  });
+
+  try {
+    const [statsData, historyData] = await Promise.all([
+      fetchJson(`/api/stats?${params}`),
+      fetchJson(`/api/metrics/history?${historyParams}`),
+    ]);
+    const stats = statsData.stats || {};
+    const metrics = historyData.metrics || [];
+    const selectedGpu = state.gpus.find((gpu) => String(gpu.index) === els.statsGpu.value);
+    els.statsChartTitle.textContent = selectedGpu
+      ? `GPU ${selectedGpu.index} 时间段曲线`
+      : "时间段曲线";
+    drawChart(els.statsChart, metrics);
+    renderAverageStats(stats);
+  } catch (error) {
+    els.statsResult.innerHTML = `<div class="empty">统计失败：${escapeHtml(error.message)}</div>`;
+    drawChart(els.statsChart, []);
+  }
+}
+
+function renderAverageStats(stats) {
   els.statsResult.innerHTML = [
     stat("样本数", number(stats.samples, 0)),
     stat("平均 GPU", percent(stats.avg_gpu_utilization)),
-    stat("最高 GPU", percent(stats.max_gpu_utilization)),
     stat("平均显存", percent(stats.avg_memory_utilization)),
-    stat("最高显存", percent(stats.max_memory_utilization)),
     stat("平均显存用量", suffix(stats.avg_memory_used_mb, " MB")),
-    stat("最高显存用量", suffix(stats.max_memory_used_mb, " MB")),
     stat("平均温度", suffix(stats.avg_temperature_c, "°C")),
-    stat("最高温度", suffix(stats.max_temperature_c, "°C")),
     stat("平均功耗", suffix(stats.avg_power_usage_w, " W")),
-    stat("最高功耗", suffix(stats.max_power_usage_w, " W")),
   ].join("");
 }
 

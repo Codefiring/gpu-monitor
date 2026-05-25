@@ -16,7 +16,7 @@
         </div>
       </div>
       <div class="toolbar">
-        <label>
+        <label id="historyControl">
           曲线窗口
           <select id="historyWindow">
             <option value="10" selected>最近 10 分钟</option>
@@ -30,31 +30,58 @@
     </header>
 
     <main>
-      <section id="gpuGrid" class="gpu-grid" aria-live="polite"></section>
+      <section class="view-switch" aria-label="页面切换">
+        <button class="view-card is-active" type="button" data-view="monitor" aria-pressed="true">
+          <span>实时监控</span>
+          <strong>查看每张 GPU 的当前状态和实时曲线</strong>
+        </button>
+        <button class="view-card" type="button" data-view="stats" aria-pressed="false">
+          <span>时间段统计</span>
+          <strong>按给定时间展示曲线并计算平均值</strong>
+        </button>
+      </section>
 
-      <section class="stats-panel">
-        <div class="stats-header">
-          <div>
-            <h2>时间段统计</h2>
-            <p class="section-note">平均值和峰值按所选时间范围计算</p>
+      <section id="monitorView" class="view-page">
+        <div id="gpuGrid" class="gpu-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="statsView" class="view-page" hidden>
+        <section class="stats-panel">
+          <div class="stats-header">
+            <div>
+              <h2>时间段统计</h2>
+              <p class="section-note">选择 GPU 和时间范围后展示该时间段内的利用率曲线与平均值</p>
+            </div>
+            <div class="stats-controls">
+              <label>
+                GPU
+                <select id="statsGpu"></select>
+              </label>
+              <label>
+                开始
+                <input id="statsFrom" type="datetime-local" />
+              </label>
+              <label>
+                结束
+                <input id="statsTo" type="datetime-local" />
+              </label>
+              <button id="statsButton" type="button">统计</button>
+            </div>
           </div>
-          <div class="stats-controls">
-            <label>
-              GPU
-              <select id="statsGpu"></select>
-            </label>
-            <label>
-              开始
-              <input id="statsFrom" type="datetime-local" />
-            </label>
-            <label>
-              结束
-              <input id="statsTo" type="datetime-local" />
-            </label>
-            <button id="statsButton" type="button">统计</button>
+          <div id="statsResult" class="stats-result"></div>
+        </section>
+
+        <section class="stats-panel stats-chart-panel">
+          <div class="stats-header">
+            <div>
+              <h2 id="statsChartTitle">时间段曲线</h2>
+              <p class="section-note">曲线使用所选时间范围内的历史采样数据</p>
+            </div>
           </div>
-        </div>
-        <div id="statsResult" class="stats-result"></div>
+          <div class="stats-chart-wrap">
+            <canvas id="statsChart" width="1200" height="360" aria-label="时间段 GPU 利用率曲线"></canvas>
+          </div>
+        </section>
       </section>
     </main>
 
