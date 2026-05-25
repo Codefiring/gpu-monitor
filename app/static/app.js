@@ -156,6 +156,12 @@ function metric(label, value) {
   return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
+function historyPointLimit(minutes) {
+  const assumedSampleSeconds = 5;
+  const expectedPoints = Math.ceil((minutes * 60) / assumedSampleSeconds);
+  return Math.min(Math.max(expectedPoints + 24, 120), 10000);
+}
+
 async function refreshCharts() {
   if (state.activeView !== "monitor") return;
 
@@ -168,16 +174,9 @@ async function refreshCharts() {
         gpu: String(gpu.index),
         from: start.toISOString(),
         to: end.toISOString(),
-        limit: "2000",
+        limit: String(historyPointLimit(minutes)),
       });
-      let data = await fetchJson(`/api/metrics/history?${params}`);
-      if (!(data.metrics || []).length) {
-        const recentParams = new URLSearchParams({
-          gpu: String(gpu.index),
-          limit: "200",
-        });
-        data = await fetchJson(`/api/metrics/recent?${recentParams}`);
-      }
+      const data = await fetchJson(`/api/metrics/history?${params}`);
       if (data.collector_error) {
         els.status.innerHTML = `<span class="error">${escapeHtml(data.collector_error)}</span>`;
       }
