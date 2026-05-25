@@ -123,6 +123,24 @@ class MetricsStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def recent(self, gpu_index: int, limit: int) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT *
+                FROM (
+                    SELECT *
+                    FROM metrics
+                    WHERE gpu_index = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                )
+                ORDER BY timestamp ASC
+                """,
+                (gpu_index, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def stats(self, gpu_index: int, start: datetime, end: datetime) -> dict[str, Any]:
         with self._lock:
             row = self._conn.execute(

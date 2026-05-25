@@ -101,6 +101,23 @@ def history(
     }
 
 
+@app.get("/api/metrics/recent")
+def recent_metrics(
+    gpu: Annotated[int, Query(ge=0)],
+    limit: Annotated[int, Query(ge=1, le=10000)] = 200,
+) -> dict:
+    metrics = store.recent(gpu, limit)
+    collector_error = collector.last_error
+    if not metrics:
+        collector_error = _collect_once()
+        metrics = store.recent(gpu, limit)
+    return {
+        "gpu": gpu,
+        "metrics": metrics,
+        "collector_error": collector_error,
+    }
+
+
 @app.get("/api/stats")
 def stats(
     gpu: Annotated[int, Query(ge=0)],

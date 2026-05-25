@@ -124,7 +124,14 @@ async function refreshCharts() {
         to: end.toISOString(),
         limit: "2000",
       });
-      const data = await fetchJson(`/api/metrics/history?${params}`);
+      let data = await fetchJson(`/api/metrics/history?${params}`);
+      if (!(data.metrics || []).length) {
+        const recentParams = new URLSearchParams({
+          gpu: String(gpu.index),
+          limit: "200",
+        });
+        data = await fetchJson(`/api/metrics/recent?${recentParams}`);
+      }
       if (data.collector_error) {
         els.status.innerHTML = `<span class="error">${escapeHtml(data.collector_error)}</span>`;
       }
