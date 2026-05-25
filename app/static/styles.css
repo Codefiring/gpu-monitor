@@ -1,0 +1,280 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-muted: #eef2f6;
+  --text: #152033;
+  --muted: #65758b;
+  --border: #d8e0ea;
+  --accent: #147d73;
+  --accent-strong: #0f665e;
+  --warn: #bd5b00;
+  --danger: #b42318;
+  --chart-grid: #dfe6ee;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 720;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+#statusText {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+main {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 24px 28px 40px;
+}
+
+.toolbar,
+.stats-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+select,
+input,
+button {
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+select,
+input {
+  min-width: 156px;
+  padding: 0 10px;
+}
+
+button {
+  padding: 0 14px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+.gpu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.gpu-card,
+.stats-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.gpu-card {
+  min-height: 430px;
+  padding: 16px;
+}
+
+.gpu-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.gpu-title h2 {
+  line-height: 1.25;
+}
+
+.gpu-index {
+  min-width: 54px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.metric {
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fbfcfe;
+}
+
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 230px;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.empty {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.stats-panel {
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.stats-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stats-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.stat-cell {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fbfcfe;
+}
+
+.stat-cell span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.stat-cell strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+}
+
+.error {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .topbar,
+  .stats-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  main,
+  .topbar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .gpu-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-controls,
+  .toolbar {
+    align-items: stretch;
+  }
+
+  select,
+  input,
+  button {
+    width: 100%;
+  }
+}

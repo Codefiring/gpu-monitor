@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GPU Monitor</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>GPU Monitor</h1>
+        <p id="statusText">正在连接服务器...</p>
+      </div>
+      <div class="toolbar">
+        <label>
+          曲线窗口
+          <select id="historyWindow">
+            <option value="10" selected>最近 10 分钟</option>
+            <option value="30">最近 30 分钟</option>
+            <option value="60">最近 1 小时</option>
+            <option value="360">最近 6 小时</option>
+          </select>
+        </label>
+        <button id="refreshButton" type="button">刷新</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="gpuGrid" class="gpu-grid" aria-live="polite"></section>
+
+      <section class="stats-panel">
+        <div class="stats-header">
+          <h2>时间段统计</h2>
+          <div class="stats-controls">
+            <label>
+              GPU
+              <select id="statsGpu"></select>
+            </label>
+            <label>
+              开始
+              <input id="statsFrom" type="datetime-local" />
+            </label>
+            <label>
+              结束
+              <input id="statsTo" type="datetime-local" />
+            </label>
+            <button id="statsButton" type="button">统计</button>
+          </div>
+        </div>
+        <div id="statsResult" class="stats-result"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
