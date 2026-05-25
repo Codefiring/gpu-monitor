@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 import pynvml
+
+from app.timezone import now_cst
 
 
 class GpuCollector:
@@ -57,7 +58,7 @@ class GpuCollector:
     def sample(self) -> list[dict[str, Any]]:
         try:
             self.init()
-            timestamp = datetime.now(UTC).isoformat()
+            timestamp = now_cst().isoformat()
             metrics = []
             for index in range(self.gpu_count()):
                 metrics.append(_sample_gpu(index, timestamp))

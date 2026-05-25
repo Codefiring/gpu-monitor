@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import sqlite3
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+from app.timezone import now_cst, parse_iso_to_cst
 
 
 METRIC_COLUMNS = (
@@ -57,7 +59,29 @@ class MetricsStore:
                     ON metrics(gpu_index, timestamp);
                 """
             )
+            self._migrate_timestamps_to_cst_locked()
             self._conn.commit()
+
+    def _migrate_timestamps_to_cst_locked(self) -> None:
+        rows = self._conn.execute(
+            """
+            SELECT id, timestamp
+            FROM metrics
+            WHERE timestamp LIKE '%+00:00'
+               OR timestamp LIKE '%Z'
+            """
+        ).fetchall()
+        updates = []
+        for row in rows:
+            try:
+                updates.append((parse_iso_to_cst(row["timestamp"]).isoformat(), row["id"]))
+            except ValueError:
+                continue
+        if updates:
+            self._conn.executemany(
+                "UPDATE metrics SET timestamp = ? WHERE id = ?",
+                updates,
+            )
 
     def insert_many(self, metrics: list[dict[str, Any]]) -> None:
         if not metrics:
@@ -74,7 +98,7 @@ class MetricsStore:
             self._conn.commit()
 
     def prune_older_than(self, days: int) -> int:
-        cutoff = datetime.now(UTC) - timedelta(days=days)
+        cutoff = now_cst() - timedelta(days=days)
         with self._lock:
             cursor = self._conn.execute(
                 "DELETE FROM metrics WHERE timestamp < ?",

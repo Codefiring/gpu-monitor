@@ -4,7 +4,7 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.db import MetricsStore
 from app.gpu import GpuCollector
+from app.timezone import normalize_to_cst, now_cst
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -79,7 +80,7 @@ def history(
     end: Annotated[datetime | None, Query(alias="to")] = None,
     limit: Annotated[int, Query(ge=1, le=10000)] = 2000,
 ) -> dict:
-    end = _normalize_datetime(end) if end else datetime.now(UTC)
+    end = _normalize_datetime(end) if end else now_cst()
     start = _normalize_datetime(start) if start else end - timedelta(minutes=DEFAULT_HISTORY_MINUTES)
     metrics = store.history(gpu, start, end, limit)
     collector_error = collector.last_error
@@ -87,9 +88,9 @@ def history(
     # The browser asks for history up to its current time. On a cold start, the
     # first on-demand sample can land milliseconds after that upper bound. Widen
     # the bound only for near-real-time empty windows so the first sample appears.
-    if not metrics and abs((datetime.now(UTC) - end).total_seconds()) <= SAMPLE_INTERVAL_SECONDS * 2:
+    if not metrics and abs((now_cst() - end).total_seconds()) <= SAMPLE_INTERVAL_SECONDS * 2:
         collector_error = _collect_once()
-        end = datetime.now(UTC)
+        end = now_cst()
         metrics = store.history(gpu, start, end, limit)
 
     return {
@@ -124,7 +125,7 @@ def stats(
     start: Annotated[datetime | None, Query(alias="from")] = None,
     end: Annotated[datetime | None, Query(alias="to")] = None,
 ) -> dict:
-    end = _normalize_datetime(end) if end else datetime.now(UTC)
+    end = _normalize_datetime(end) if end else now_cst()
     start = _normalize_datetime(start) if start else end - timedelta(hours=1)
     return {
         "gpu": gpu,
@@ -161,6 +162,4 @@ def _collect_once() -> str | None:
 
 
 def _normalize_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
+    return normalize_to_cst(value)
