@@ -64,7 +64,12 @@ def gpus() -> dict:
 
 @app.get("/api/metrics/latest")
 def latest_metrics() -> dict:
-    return {"metrics": store.latest(), "collector_error": collector.last_error}
+    metrics = store.latest()
+    collector_error = collector.last_error
+    if not metrics:
+        collector_error = _collect_once()
+        metrics = store.latest()
+    return {"metrics": metrics, "collector_error": collector_error}
 
 
 @app.get("/api/metrics/history")
@@ -76,11 +81,23 @@ def history(
 ) -> dict:
     end = _normalize_datetime(end) if end else datetime.now(UTC)
     start = _normalize_datetime(start) if start else end - timedelta(minutes=DEFAULT_HISTORY_MINUTES)
+    metrics = store.history(gpu, start, end, limit)
+    collector_error = collector.last_error
+
+    # The browser asks for history up to its current time. On a cold start, the
+    # first on-demand sample can land milliseconds after that upper bound. Widen
+    # the bound only for near-real-time empty windows so the first sample appears.
+    if not metrics and abs((datetime.now(UTC) - end).total_seconds()) <= SAMPLE_INTERVAL_SECONDS * 2:
+        collector_error = _collect_once()
+        end = datetime.now(UTC)
+        metrics = store.history(gpu, start, end, limit)
+
     return {
         "gpu": gpu,
         "from": start.isoformat(),
         "to": end.isoformat(),
-        "metrics": store.history(gpu, start, end, limit),
+        "metrics": metrics,
+        "collector_error": collector_error,
     }
 
 
@@ -111,8 +128,19 @@ async def _collector_loop(stop_event: asyncio.Event) -> None:
 
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=SAMPLE_INTERVAL_SECONDS)
-        except TimeoutError:
+        except asyncio.TimeoutError:
             continue
+
+
+def _collect_once() -> str | None:
+    try:
+        metrics = collector.sample()
+        store.insert_many(metrics)
+        store.prune_older_than(RETENTION_DAYS)
+        return None
+    except RuntimeError as exc:
+        logger.warning("GPU metric collection failed: %s", exc)
+        return str(exc)
 
 
 def _normalize_datetime(value: datetime) -> datetime:

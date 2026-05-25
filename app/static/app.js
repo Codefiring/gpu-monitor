@@ -51,6 +51,8 @@ async function refreshAll() {
 
     if (gpusResponse.error) {
       els.status.innerHTML = `<span class="error">${escapeHtml(gpusResponse.error)}</span>`;
+    } else if (latestResponse.collector_error) {
+      els.status.innerHTML = `<span class="error">${escapeHtml(latestResponse.collector_error)}</span>`;
     } else {
       els.status.textContent = `已连接，${state.gpus.length} 张 GPU，每 5 秒刷新`;
     }
@@ -123,6 +125,9 @@ async function refreshCharts() {
         limit: "2000",
       });
       const data = await fetchJson(`/api/metrics/history?${params}`);
+      if (data.collector_error) {
+        els.status.innerHTML = `<span class="error">${escapeHtml(data.collector_error)}</span>`;
+      }
       drawChart(state.charts.get(gpu.index), data.metrics || []);
     }),
   );
@@ -183,7 +188,6 @@ function drawGrid(ctx, width, height, padding, plotWidth, plotHeight) {
 }
 
 function drawSeries(ctx, metrics, key, color, padding, plotWidth, plotHeight) {
-  if (metrics.length < 2) return;
   const firstTime = new Date(metrics[0].timestamp).getTime();
   const lastTime = new Date(metrics[metrics.length - 1].timestamp).getTime();
   const range = Math.max(lastTime - firstTime, 1);
@@ -204,6 +208,15 @@ function drawSeries(ctx, metrics, key, color, padding, plotWidth, plotHeight) {
   });
 
   ctx.stroke();
+
+  if (metrics.length === 1) {
+    const value = Number(metrics[0][key] || 0);
+    const y = padding.top + (1 - clamp(value / 100, 0, 1)) * plotHeight;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(padding.left + plotWidth / 2, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawLegend(ctx, padding) {
