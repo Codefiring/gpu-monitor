@@ -285,8 +285,8 @@ button:active {
 }
 
 .metric {
-  min-height: 58px;
-  padding: 9px 10px;
+  min-height: 42px;
+  padding: 7px 8px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -303,7 +303,7 @@ button:active {
 .metric span {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -311,10 +311,10 @@ button:active {
 
 .metric strong {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 760;
   line-height: 1.15;
 }
@@ -322,8 +322,8 @@ button:active {
 .chart-wrap {
   position: relative;
   width: 100%;
-  height: 178px;
-  padding: 10px 12px 12px;
+  height: 260px;
+  padding: 8px 10px 10px;
 }
 
 canvas {
@@ -331,7 +331,7 @@ canvas {
   height: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: #fcfcfd;
 }
 
 .empty {
@@ -376,7 +376,7 @@ canvas {
 }
 
 .stats-chart-wrap {
-  height: 380px;
+  height: 460px;
   padding: 14px;
 }
 
@@ -395,7 +395,7 @@ canvas {
 
 .stat-cell span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;

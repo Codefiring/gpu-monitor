@@ -187,37 +187,60 @@ async function refreshCharts() {
 function drawChart(canvas, metrics) {
   if (!canvas) return;
 
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  const padding = { top: 20, right: 48, bottom: 34, left: 42 };
+  const chart = prepareCanvas(canvas);
+  const ctx = chart.ctx;
+  const width = chart.width;
+  const height = chart.height;
+  const padding = { top: 30, right: 20, bottom: 28, left: 38 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#fcfcfd";
   ctx.fillRect(0, 0, width, height);
 
-  drawGrid(ctx, width, height, padding, plotWidth, plotHeight);
+  drawGrid(ctx, width, height, padding, plotWidth, plotHeight, metrics);
 
   if (!metrics.length) {
     ctx.fillStyle = colors.muted;
-    ctx.font = "14px system-ui";
+    ctx.font = "13px system-ui";
     ctx.textAlign = "center";
     ctx.fillText("该时间段暂无采样数据", width / 2, height / 2);
     return;
   }
 
-  drawSeries(ctx, metrics, "gpu_utilization", colors.gpu, padding, plotWidth, plotHeight);
-  drawSeries(ctx, metrics, "memory_utilization", colors.memory, padding, plotWidth, plotHeight);
-  drawLegend(ctx, padding);
+  drawSeries(ctx, metrics, "gpu_utilization", colors.gpu, padding, plotWidth, plotHeight, {
+    fill: true,
+    lineWidth: 2.4,
+  });
+  drawSeries(ctx, metrics, "memory_utilization", colors.memory, padding, plotWidth, plotHeight, {
+    dash: [6, 5],
+    lineWidth: 2,
+  });
+  drawLegend(ctx, padding, metrics);
 }
 
-function drawGrid(ctx, width, height, padding, plotWidth, plotHeight) {
-  ctx.strokeStyle = colors.grid;
+function prepareCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(Math.round(rect.width), 320);
+  const height = Math.max(Math.round(rect.height), 180);
+  const pixelWidth = Math.round(width * dpr);
+  const pixelHeight = Math.round(height * dpr);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, width, height };
+}
+
+function drawGrid(ctx, width, height, padding, plotWidth, plotHeight, metrics) {
+  ctx.strokeStyle = "#eaecf0";
   ctx.lineWidth = 1;
-  ctx.font = "12px system-ui";
-  ctx.fillStyle = colors.muted;
+  ctx.font = "11px system-ui";
+  ctx.fillStyle = "#98a2b3";
   ctx.textAlign = "right";
 
   for (let i = 0; i <= 4; i += 1) {
@@ -227,63 +250,118 @@ function drawGrid(ctx, width, height, padding, plotWidth, plotHeight) {
     ctx.moveTo(padding.left, y);
     ctx.lineTo(width - padding.right, y);
     ctx.stroke();
-    ctx.fillText(`${value}%`, padding.left - 8, y + 4);
+    ctx.fillText(`${value}`, padding.left - 8, y + 4);
   }
 
-  ctx.strokeStyle = colors.text;
+  ctx.strokeStyle = "#d0d5dd";
   ctx.beginPath();
-  ctx.moveTo(padding.left, padding.top);
-  ctx.lineTo(padding.left, height - padding.bottom);
-  ctx.lineTo(width - padding.right, height - padding.bottom);
+  ctx.moveTo(padding.left, padding.top + plotHeight);
+  ctx.lineTo(width - padding.right, padding.top + plotHeight);
   ctx.stroke();
+
+  if (metrics.length >= 2) {
+    const first = new Date(metrics[0].timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const last = new Date(metrics[metrics.length - 1].timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    ctx.fillStyle = "#98a2b3";
+    ctx.textAlign = "left";
+    ctx.fillText(first, padding.left, height - 8);
+    ctx.textAlign = "right";
+    ctx.fillText(last, width - padding.right, height - 8);
+  }
 }
 
-function drawSeries(ctx, metrics, key, color, padding, plotWidth, plotHeight) {
-  const firstTime = new Date(metrics[0].timestamp).getTime();
-  const lastTime = new Date(metrics[metrics.length - 1].timestamp).getTime();
-  const range = Math.max(lastTime - firstTime, 1);
+function drawSeries(ctx, metrics, key, color, padding, plotWidth, plotHeight, options = {}) {
+  const points = buildPoints(metrics, key, padding, plotWidth, plotHeight);
+  if (!points.length) return;
 
+  if (options.fill && points.length > 1) {
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + plotHeight);
+    gradient.addColorStop(0, hexToRgba(color, 0.18));
+    gradient.addColorStop(1, hexToRgba(color, 0.02));
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, padding.top + plotHeight);
+    points.forEach((point) => ctx.lineTo(point.x, point.y));
+    ctx.lineTo(points[points.length - 1].x, padding.top + plotHeight);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = options.lineWidth || 2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.setLineDash(options.dash || []);
   ctx.beginPath();
-
-  metrics.forEach((metricRow, index) => {
-    const x =
-      padding.left + ((new Date(metricRow.timestamp).getTime() - firstTime) / range) * plotWidth;
-    const y = padding.top + (1 - clamp(Number(metricRow[key] || 0) / 100, 0, 1)) * plotHeight;
+  points.forEach((point, index) => {
     if (index === 0) {
-      ctx.moveTo(x, y);
+      ctx.moveTo(point.x, point.y);
     } else {
-      ctx.lineTo(x, y);
+      const prev = points[index - 1];
+      const midX = (prev.x + point.x) / 2;
+      ctx.quadraticCurveTo(prev.x, prev.y, midX, (prev.y + point.y) / 2);
+      ctx.quadraticCurveTo(midX, (prev.y + point.y) / 2, point.x, point.y);
     }
   });
-
   ctx.stroke();
+  ctx.restore();
 
-  if (metrics.length === 1) {
-    const value = Number(metrics[0][key] || 0);
-    const y = padding.top + (1 - clamp(value / 100, 0, 1)) * plotHeight;
-    ctx.fillStyle = color;
+  const last = points[points.length - 1];
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (points.length === 1) {
     ctx.beginPath();
-    ctx.arc(padding.left + plotWidth / 2, y, 4, 0, Math.PI * 2);
+    ctx.arc(points[0].x, points[0].y, 4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
-function drawLegend(ctx, padding) {
+function buildPoints(metrics, key, padding, plotWidth, plotHeight) {
+  const firstTime = new Date(metrics[0].timestamp).getTime();
+  const lastTime = new Date(metrics[metrics.length - 1].timestamp).getTime();
+  const range = Math.max(lastTime - firstTime, 1);
+  return metrics.map((metricRow) => {
+    const value = clamp(Number(metricRow[key] || 0), 0, 100);
+    const x = padding.left + ((new Date(metricRow.timestamp).getTime() - firstTime) / range) * plotWidth;
+    const y = padding.top + (1 - value / 100) * plotHeight;
+    return { x, y, value };
+  });
+}
+
+function drawLegend(ctx, padding, metrics) {
+  const latest = metrics[metrics.length - 1] || {};
   const items = [
-    ["GPU", colors.gpu],
-    ["显存", colors.memory],
+    ["GPU", colors.gpu, percent(latest.gpu_utilization)],
+    ["显存", colors.memory, percent(latest.memory_utilization)],
   ];
   ctx.font = "12px system-ui";
   ctx.textAlign = "left";
-  items.forEach(([label, color], index) => {
-    const x = padding.left + index * 76;
+  items.forEach(([label, color, value], index) => {
+    const x = padding.left + index * 96;
     ctx.fillStyle = color;
-    ctx.fillRect(x, 10, 18, 4);
+    ctx.fillRect(x, 12, 18, 3);
     ctx.fillStyle = colors.text;
-    ctx.fillText(label, x + 24, 15);
+    ctx.fillText(`${label} ${value}`, x + 24, 16);
   });
+}
+
+function hexToRgba(hex, alpha) {
+  const normalized = hex.replace("#", "");
+  const value = Number.parseInt(normalized, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function renderStatsGpuOptions() {
