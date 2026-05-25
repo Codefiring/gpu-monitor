@@ -396,13 +396,13 @@ async function loadStats() {
 
   const params = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: start.toISOString(),
-    to: end.toISOString(),
+    from: toLocalOffsetIso(start),
+    to: toLocalOffsetIso(end),
   });
   const historyParams = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: start.toISOString(),
-    to: end.toISOString(),
+    from: toLocalOffsetIso(start),
+    to: toLocalOffsetIso(end),
     limit: "10000",
   });
 
@@ -415,8 +415,8 @@ async function loadStats() {
     const metrics = historyData.metrics || [];
     const selectedGpu = state.gpus.find((gpu) => String(gpu.index) === els.statsGpu.value);
     els.statsChartTitle.textContent = selectedGpu
-      ? `GPU ${selectedGpu.index} 时间段曲线`
-      : "时间段曲线";
+      ? `GPU ${selectedGpu.index} 时间段曲线 (${formatLocalRange(start, end)})`
+      : `时间段曲线 (${formatLocalRange(start, end)})`;
     drawChart(els.statsChart, metrics);
     renderAverageStats(stats);
     els.status.textContent = `统计完成，样本数 ${number(stats.samples, 0)}`;
@@ -462,6 +462,23 @@ function setDefaultStatsRange() {
 function toDatetimeLocal(date) {
   const offset = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function toLocalOffsetIso(date) {
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(offsetMinutes);
+  const offsetHours = pad2(Math.floor(absoluteOffset / 60));
+  const offsetRemainder = pad2(absoluteOffset % 60);
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:00${sign}${offsetHours}:${offsetRemainder}`;
+}
+
+function formatLocalRange(start, end) {
+  return `${toDatetimeLocal(start).replace("T", " ")} - ${toDatetimeLocal(end).replace("T", " ")}`;
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
 }
 
 function percent(value) {
