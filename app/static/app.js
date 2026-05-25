@@ -168,15 +168,12 @@ async function refreshCharts() {
   await Promise.all(
     state.gpus.map(async (gpu) => {
       const minutes = Number(els.historyWindow.value);
-      const end = new Date();
-      const start = new Date(end.getTime() - minutes * 60 * 1000);
       const params = new URLSearchParams({
         gpu: String(gpu.index),
-        from: toCstOffsetIsoFromDate(start),
-        to: toCstOffsetIsoFromDate(end),
+        minutes: String(minutes),
         limit: String(historyPointLimit(minutes)),
       });
-      const data = await fetchJson(`/api/metrics/history?${params}`);
+      const data = await fetchJson(`/api/metrics/window?${params}`);
       if (data.collector_error) {
         els.status.innerHTML = `<span class="error">${escapeHtml(data.collector_error)}</span>`;
       }
@@ -464,10 +461,6 @@ function parseDatetimeLocalAsCst(value) {
 
 function toCstOffsetIso(value) {
   return `${value}:00+08:00`;
-}
-
-function toCstOffsetIsoFromDate(date) {
-  return `${new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19)}+08:00`;
 }
 
 function formatCstRange(startValue, endValue) {

@@ -102,6 +102,33 @@ def history(
     }
 
 
+@app.get("/api/metrics/window")
+def metrics_window(
+    gpu: Annotated[int, Query(ge=0)],
+    minutes: Annotated[int, Query(ge=1, le=43200)] = DEFAULT_HISTORY_MINUTES,
+    limit: Annotated[int, Query(ge=1, le=10000)] = 2000,
+) -> dict:
+    end = now_cst()
+    start = end - timedelta(minutes=minutes)
+    metrics = store.history(gpu, start, end, limit)
+    collector_error = collector.last_error
+
+    if not metrics:
+        collector_error = _collect_once()
+        end = now_cst()
+        start = end - timedelta(minutes=minutes)
+        metrics = store.history(gpu, start, end, limit)
+
+    return {
+        "gpu": gpu,
+        "minutes": minutes,
+        "from": start.isoformat(),
+        "to": end.isoformat(),
+        "metrics": metrics,
+        "collector_error": collector_error,
+    }
+
+
 @app.get("/api/metrics/recent")
 def recent_metrics(
     gpu: Annotated[int, Query(ge=0)],
