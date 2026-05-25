@@ -262,14 +262,8 @@ function drawGrid(ctx, width, height, padding, plotWidth, plotHeight, metrics) {
   ctx.stroke();
 
   if (metrics.length >= 2) {
-    const first = new Date(metrics[0].timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const last = new Date(metrics[metrics.length - 1].timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const first = timestampClock(metrics[0].timestamp);
+    const last = timestampClock(metrics[metrics.length - 1].timestamp);
     ctx.fillStyle = "#98a2b3";
     ctx.textAlign = "left";
     ctx.fillText(first, padding.left, height - 8);
@@ -383,8 +377,10 @@ async function loadStats() {
     return;
   }
 
-  const start = new Date(els.statsFrom.value);
-  const end = new Date(els.statsTo.value);
+  const startValue = els.statsFrom.value;
+  const endValue = els.statsTo.value;
+  const start = parseDatetimeLocalAsUtc(startValue);
+  const end = parseDatetimeLocalAsUtc(endValue);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
     renderStatsMessage("请选择有效的开始和结束时间");
     drawChart(els.statsChart, []);
@@ -396,13 +392,13 @@ async function loadStats() {
 
   const params = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: toLocalOffsetIso(start),
-    to: toLocalOffsetIso(end),
+    from: toUtcOffsetIso(startValue),
+    to: toUtcOffsetIso(endValue),
   });
   const historyParams = new URLSearchParams({
     gpu: els.statsGpu.value,
-    from: toLocalOffsetIso(start),
-    to: toLocalOffsetIso(end),
+    from: toUtcOffsetIso(startValue),
+    to: toUtcOffsetIso(endValue),
     limit: "10000",
   });
 
@@ -415,8 +411,8 @@ async function loadStats() {
     const metrics = historyData.metrics || [];
     const selectedGpu = state.gpus.find((gpu) => String(gpu.index) === els.statsGpu.value);
     els.statsChartTitle.textContent = selectedGpu
-      ? `GPU ${selectedGpu.index} 时间段曲线 (${formatLocalRange(start, end)})`
-      : `时间段曲线 (${formatLocalRange(start, end)})`;
+      ? `GPU ${selectedGpu.index} 时间段曲线 (${formatUtcRange(startValue, endValue)})`
+      : `时间段曲线 (${formatUtcRange(startValue, endValue)})`;
     drawChart(els.statsChart, metrics);
     renderAverageStats(stats);
     els.status.textContent = `统计完成，样本数 ${number(stats.samples, 0)}`;
@@ -455,30 +451,38 @@ function stat(label, value) {
 function setDefaultStatsRange() {
   const end = new Date();
   const start = new Date(end.getTime() - 60 * 60 * 1000);
-  els.statsFrom.value = toDatetimeLocal(start);
-  els.statsTo.value = toDatetimeLocal(end);
+  els.statsFrom.value = toDatetimeUtc(end.getTime() - 60 * 60 * 1000);
+  els.statsTo.value = toDatetimeUtc(end.getTime());
 }
 
-function toDatetimeLocal(date) {
-  const offset = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+function toDatetimeUtc(time) {
+  return new Date(time).toISOString().slice(0, 16);
 }
 
-function toLocalOffsetIso(date) {
-  const offsetMinutes = -date.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const absoluteOffset = Math.abs(offsetMinutes);
-  const offsetHours = pad2(Math.floor(absoluteOffset / 60));
-  const offsetRemainder = pad2(absoluteOffset % 60);
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:00${sign}${offsetHours}:${offsetRemainder}`;
+function parseDatetimeLocalAsUtc(value) {
+  return new Date(`${value}:00+00:00`);
 }
 
-function formatLocalRange(start, end) {
-  return `${toDatetimeLocal(start).replace("T", " ")} - ${toDatetimeLocal(end).replace("T", " ")}`;
+function toUtcOffsetIso(value) {
+  return `${value}:00+00:00`;
 }
 
-function pad2(value) {
-  return String(value).padStart(2, "0");
+function formatUtcRange(startValue, endValue) {
+  return `${startValue.replace("T", " ")} - ${endValue.replace("T", " ")} UTC`;
+}
+
+function timestampClock(value) {
+  if (!value) return "-";
+  const match = String(value).match(/T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?/);
+  if (match) return match[1];
+  return String(value);
+}
+
+function timestampDateTime(value) {
+  if (!value) return "-";
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?/);
+  if (match) return `${match[1]} ${match[2]}`;
+  return String(value);
 }
 
 function percent(value) {
@@ -505,8 +509,7 @@ function powerText(used, limit) {
 }
 
 function timeText(value) {
-  if (!value) return "-";
-  return new Date(value).toLocaleTimeString();
+  return timestampClock(value);
 }
 
 function clamp(value, min, max) {
